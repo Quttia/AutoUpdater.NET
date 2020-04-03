@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Threading;
@@ -89,6 +90,37 @@ namespace AutoUpdaterTest
             //};
             //timer.Start();
 
+            //Uncomment following lines to provide basic authentication credentials to use.
+
+            //BasicAuthentication basicAuthentication = new BasicAuthentication("myUserName", "myPassword");
+            //AutoUpdater.BasicAuthXML = AutoUpdater.BasicAuthDownload = basicAuthentication;
+
+            //Uncomment following lines to enable forced updates.
+
+            //AutoUpdater.Mandatory = true;
+            //AutoUpdater.UpdateMode = Mode.Forced;
+
+            //Want to change update form size then uncomment below line.
+
+            //AutoUpdater.UpdateFormSize = new System.Drawing.Size(800, 600);
+
+            //Uncomment following if you want to update using FTP.
+            //AutoUpdater.Start("ftp://rbsoft.org/updates/AutoUpdaterTest.xml", new NetworkCredential("FtpUserName", "FtpPassword"));
+
+            //Uncomment following lines if you want to persist Remind Later and Skip values in a json file.
+            //string jsonPath = Path.Combine(Environment.CurrentDirectory, "settings.json");
+            //AutoUpdater.PersistenceProvider = new JsonFilePersistenceProvider(jsonPath);
+
+            //Uncomment following line if you want to set the zip extraction path.
+            //var currentDirectory = new DirectoryInfo(Environment.CurrentDirectory);
+            //if (currentDirectory.Parent != null)
+            //{
+            //    AutoUpdater.InstallationPath = currentDirectory.Parent.FullName;
+            //}
+
+            //Uncomment following line if you want to check for update synchronously.
+            //AutoUpdater.Synchronous = true;
+
             AutoUpdater.Start("https://rbsoft.org/updates/AutoUpdaterTest.xml");
         }
 
@@ -107,8 +139,18 @@ namespace AutoUpdaterTest
             {
                 CurrentVersion = json.version,
                 ChangelogURL = json.changelog,
-                Mandatory = json.mandatory,
-                DownloadURL = json.url
+                DownloadURL = json.url,
+                Mandatory = new Mandatory
+                {
+                    Value = json.mandatory.value,
+                    UpdateMode = json.mandatory.mode,
+                    MinimumVersion = json.mandatory.minVersion
+                },
+                CheckSum = new CheckSum
+                {
+                    Value = json.checksum.value,
+                    HashingAlgorithm = json.checksum.hashingAlgorithm
+                }
             };
         }
 
@@ -119,11 +161,14 @@ namespace AutoUpdaterTest
                 if (args.IsUpdateAvailable)
                 {
                     DialogResult dialogResult;
-                    if (args.Mandatory)
+                    if (args.Mandatory.Value)
                     {
                         dialogResult =
                             MessageBox.Show(
-                                $@"There is new version {args.CurrentVersion} available. You are using version {args.InstalledVersion}. This is required update. Press Ok to begin updating the application.", @"Update Available",
+                                $@"There is new version {args.CurrentVersion} available. You are using version {
+                                        args.InstalledVersion
+                                    }. This is required update. Press Ok to begin updating the application.",
+                                @"Update Available",
                                 MessageBoxButtons.OK,
                                 MessageBoxIcon.Information);
                     }
@@ -145,7 +190,7 @@ namespace AutoUpdaterTest
                         {
                             //You can use Download Update dialog used by AutoUpdater.NET to download the update.
 
-                            if (AutoUpdater.DownloadUpdate())
+                            if (AutoUpdater.DownloadUpdate(args))
                             {
                                 Application.Exit();
                             }
@@ -166,14 +211,13 @@ namespace AutoUpdaterTest
             else
             {
                 MessageBox.Show(
-                       @"There is a problem reaching update server. Please check your internet connection and try again later.",
-                       @"Update Check Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    @"There is a problem reaching update server. Please check your internet connection and try again later.",
+                    @"Update Check Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private void ButtonCheckForUpdate_Click(object sender, EventArgs e)
         {
-
             //Uncomment below lines to select download path where update is saved.
 
             //FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
